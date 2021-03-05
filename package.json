@@ -1,0 +1,23 @@
+{
+  "name": "study-nodejs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/quangkhuat1995/Study-NodeJs.git"
+  },
+  "author": "quang",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/quangkhuat1995/Study-NodeJs/issues"
+  },
+  "homepage": "https://github.com/quangkhuat1995/Study-NodeJs#readme",
+  "devDependencies": {
+    "nodemon": "^2.0.7"
+  }
+}
