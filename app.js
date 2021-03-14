@@ -1,20 +1,12 @@
 const path = require("path");
 const express = require("express");
 const bodyParser = require("body-parser");
-const expressHbs = require("express-handlebars");
 
 const app = express();
 
 // remember template should have filename like [some-name].hbs
-app.engine(
-  "hbs",
-  expressHbs({
-    layoutsDir: "views/layouts/",
-    defaultLayout: "main-layout",
-    extname: "hbs",
-  })
-);
-app.set("view engine", "hbs");
+
+app.set("view engine", "ejs");
 
 const adminData = require("./routes/admin");
 const shopRoutes = require("./routes/shop");
