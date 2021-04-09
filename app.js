@@ -14,6 +14,8 @@ const errorControllers = require("./controllers/error");
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "public")));
 
+const sequelize = require("./util/database");
+
 // midleware
 // app.use("/add-product", (req, res, next) => {
 //   res.send(
@@ -37,4 +39,11 @@ app.use(shopRoutes);
 
 // add 404
 app.use(errorControllers.get404);
-app.listen(3000);
+
+sequelize
+  .sync()
+  .then((result) => {
+    // console.log(result);
+    app.listen(3000);
+  })
+  .catch((err) => console.log(err));
