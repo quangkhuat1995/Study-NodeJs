@@ -1,6 +1,7 @@
 const path = require("path");
 const express = require("express");
 const bodyParser = require("body-parser");
+const mongoose = require("mongoose");
 
 const app = express();
 
@@ -14,8 +15,7 @@ const errorControllers = require("./controllers/error");
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "public")));
 
-const { mongoConnect } = require("./util/database");
-const User = require("./models/user");
+// const User = require("./models/user");
 
 // midleware
 // app.use("/add-product", (req, res, next) => {
@@ -31,14 +31,14 @@ const User = require("./models/user");
 //   res.redirect("/");
 // });
 
-app.use((req, res, next) => {
-  User.findById("608657f064c183a29ca1176e")
-    .then((user) => {
-      req.user = new User(user.name, user.email, user.cart, user._id);
-      next();
-    })
-    .catch((err) => console.log(err));
-});
+// app.use((req, res, next) => {
+//   User.findById("608657f064c183a29ca1176e")
+//     .then((user) => {
+//       req.user = new User(user.name, user.email, user.cart, user._id);
+//       next();
+//     })
+//     .catch((err) => console.log(err));
+// });
 
 app.use("/admin", adminRoutes);
 app.use(shopRoutes);
@@ -46,6 +46,11 @@ app.use(shopRoutes);
 // add 404
 app.use(errorControllers.get404);
 
-mongoConnect(() => {
-  app.listen(3000);
-});
+mongoose
+  .connect(
+    "mongodb+srv://quang:quang@cluster0.omrzd.mongodb.net/shop?retryWrites=true&w=majority"
+  )
+  .then((result) => {
+    app.listen(3000);
+  })
+  .catch((err) => console.log(err));
