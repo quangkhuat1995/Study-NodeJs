@@ -15,6 +15,7 @@ exports.postAddProducts = (req, res, next) => {
     price,
     description,
     imageUrl,
+    userId: req.user,
   });
   product
     .save()
@@ -48,6 +49,8 @@ exports.getEditProduct = (req, res, next) => {
 
 exports.getProducts = (req, res, next) => {
   Product.find()
+    // .select("title price -_id") // select which field to return for main document
+    // .populate("userId", "name") // get all data relate to userId, if 2nd params exist, get that collumn only
     .then((products) => {
       res.render("admin/products", {
         prods: products,
