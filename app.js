@@ -2,8 +2,16 @@ const path = require("path");
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-
+const session = require("express-session");
+const MongoDBStore = require("connect-mongodb-session")(session);
 const app = express();
+
+const MONGODB_URI = "mongodb+srv://quang:quang@cluster0.omrzd.mongodb.net/shop";
+
+const store = new MongoDBStore({
+  uri: MONGODB_URI,
+  collection: "sessions",
+});
 
 // remember template should have filename like [some-name].hbs
 
@@ -15,25 +23,22 @@ const authRoutes = require("./routes/auth");
 const errorControllers = require("./controllers/error");
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "public")));
+app.use(
+  session({
+    secret: "my long secret string",
+    resave: false,
+    saveUninitialized: false,
+    store,
+  })
+);
 
 const User = require("./models/user");
 
-// midleware
-// app.use("/add-product", (req, res, next) => {
-//   res.send(
-//     "<form action='/product' method='POST'><input type='text' name='title'/><button type='submit'>Add product</button></form>"
-//   );
-//   // don't call next() here, it will fire the '/' midleware
-// });
-
-// // midleware for POST method only
-// app.post("/product", (req, res, next) => {
-//   console.log(req.body);
-//   res.redirect("/");
-// });
-
 app.use((req, res, next) => {
-  User.findById("608686f82602664d50cafde9")
+  if (!req.session.user) {
+    return next();
+  }
+  User.findById(req.session.user._id)
     .then((user) => {
       req.user = user;
       next();
@@ -49,9 +54,7 @@ app.use(authRoutes);
 app.use(errorControllers.get404);
 
 mongoose
-  .connect(
-    "mongodb+srv://quang:quang@cluster0.omrzd.mongodb.net/shop?retryWrites=true&w=majority"
-  )
+  .connect(MONGODB_URI)
   .then((result) => {
     User.findOne().then((user) => {
       if (!user) {
