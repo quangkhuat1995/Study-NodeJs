@@ -1,4 +1,5 @@
 const User = require("../models/user");
+const bcrypt = require("bcryptjs");
 
 exports.getLogin = (req, res, next) => {
   // console.log(req.session);
@@ -31,7 +32,34 @@ exports.getSignup = (req, res, next) => {
   });
 };
 
-exports.postSignup = (req, res, next) => {};
+exports.postSignup = (req, res, next) => {
+  const { email, password, confirmPassword } = req.body;
+  // validate input later
+  // still should check for duplicate email
+  User.findOne({ email })
+    .then((userDoc) => {
+      // user exist
+      if (userDoc) {
+        return res.redirect("/signup");
+      }
+      return bcrypt
+        .hash(password, 12)
+        .then((hashedPassword) => {
+          const user = new User({
+            email,
+            password: hashedPassword,
+            cart: { items: [] },
+          });
+          return user.save();
+        })
+        .then((result) => {
+          res.redirect("/login");
+        });
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+};
 
 exports.postLogout = (req, res, next) => {
   req.session.destroy((err) => {
