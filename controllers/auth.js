@@ -11,15 +11,31 @@ exports.getLogin = (req, res, next) => {
 };
 
 exports.postLogin = (req, res, next) => {
+  const { email, password } = req.body;
   // Max-Age=10; Expired=...; Domain=...; Secure (only use for https); HttpOnly
   // res.setHeader("Set-Cookie", "loggedIn=true");
-  User.findById("608686f82602664d50cafde9")
+  User.findOne({ email })
     .then((user) => {
-      req.session.isLoggedIn = true;
-      req.session.user = user;
-      res.session.save((er) => {
-        res.redirect("/");
-      });
+      if (!user) {
+        return res.redirect("/login");
+      }
+      // validate password
+      bcrypt
+        .compare(password, user.password)
+        .then((doMatch) => {
+          if (doMatch) {
+            req.session.isLoggedIn = true;
+            req.session.user = user;
+            return req.session.user.save((er) => {
+              res.redirect("/");
+            });
+          }
+          return res.redirect("/login");
+        })
+        .catch((err) => {
+          console.log(err);
+          return res.redirect("/login");
+        });
     })
     .catch((err) => console.log(err));
 };
