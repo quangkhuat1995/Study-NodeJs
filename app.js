@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
 const app = express();
+const flash = require("connect-flash");
 
 const csurf = require("csurf");
 
@@ -36,6 +37,7 @@ app.use(
   })
 );
 app.use(csurfProtection);
+app.use(flash());
 
 const User = require("./models/user");
 
