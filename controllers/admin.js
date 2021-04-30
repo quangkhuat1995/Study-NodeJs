@@ -48,7 +48,7 @@ exports.getEditProduct = (req, res, next) => {
 };
 
 exports.getProducts = (req, res, next) => {
-  Product.find()
+  Product.find({ userId: req.user._id })
     // .select("title price -_id") // select which field to return for main document
     // .populate("userId", "name") // get all data relate to userId, if 2nd params exist, get that collumn only
     .then((products) => {
@@ -66,22 +66,25 @@ exports.postEditProduct = (req, res, next) => {
 
   Product.findById(productId)
     .then((product) => {
+      if (product.userId.toString() !== req.user._id.toString()) {
+        return res.redirect("/");
+      }
       product.title = title;
       product.price = price;
       product.description = description;
       product.imageUrl = imageUrl;
-      return product.save();
+      return product.save().then(() => {
+        console.log("UPDATED PRODUCT");
+        res.redirect("/admin/products");
+      });
     })
-    .then(() => {
-      console.log("UPDATED PRODUCT");
-      res.redirect("/admin/products");
-    })
+
     .catch((err) => console.log(err));
 };
 
 exports.postDeleteProduct = (req, res, next) => {
   const { productId } = req.body;
-  Product.findByIdAndRemove(productId)
+  Product.deleteOne({ _id: productId, userId: req.user._id })
     .then((result) => {
       console.log("PRODUCT DELETE");
       res.redirect("/admin/products");
