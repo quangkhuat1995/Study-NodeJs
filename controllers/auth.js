@@ -1,5 +1,15 @@
 const User = require("../models/user");
 const bcrypt = require("bcryptjs");
+const nodemailer = require("nodemailer");
+
+var transport = nodemailer.createTransport({
+  host: process.env.MAIL_HOST,
+  port: 2525,
+  auth: {
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASSWORD,
+  },
+});
 
 exports.getLogin = (req, res, next) => {
   let message = req.flash("error"); // return array of error message if has
@@ -84,6 +94,13 @@ exports.postSignup = (req, res, next) => {
         })
         .then((result) => {
           res.redirect("/login");
+
+          return transport.sendMail({
+            to: email,
+            from: "test-study-nodejs@gmail.com",
+            subject: "Sign up successful",
+            html: "<h1>You have sign up demo app successful</h1>",
+          });
         });
     })
     .catch((err) => {

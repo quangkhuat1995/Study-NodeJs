@@ -7,9 +7,11 @@ const MongoDBStore = require("connect-mongodb-session")(session);
 const app = express();
 const flash = require("connect-flash");
 
-const csurf = require("csurf");
+const dotenv = require("dotenv");
+dotenv.config();
 
-const MONGODB_URI = "mongodb+srv://quang:quang@cluster0.omrzd.mongodb.net/shop";
+const csurf = require("csurf");
+const MONGODB_URI = process.env.MONGODB_URI;
 
 const store = new MongoDBStore({
   uri: MONGODB_URI,
