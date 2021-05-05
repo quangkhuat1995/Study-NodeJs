@@ -2,7 +2,7 @@ const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
-const { validationResult } = require("express-validator/check");
+const { validationResult } = require("express-validator");
 
 var transport = nodemailer.createTransport({
   host: process.env.MAIL_HOST,
@@ -24,18 +24,33 @@ exports.getLogin = (req, res, next) => {
     pageTitle: "Login",
     path: "/login",
     errorMessage: message,
+    oldInput: { email: "", password: "" },
+    validationErrors: [],
   });
 };
 
 exports.postLogin = (req, res, next) => {
-  const { email, password } = req.body;
-  // Max-Age=10; Expired=...; Domain=...; Secure (only use for https); HttpOnly
-  // res.setHeader("Set-Cookie", "loggedIn=true");
+  const { email, password, confirmPassword } = req.body;
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).render("auth/login", {
+      pageTitle: "Login",
+      path: "/login",
+      errorMessage: errors.array()[0].msg,
+      oldInput: { email, password, confirmPassword },
+      validationErrors: errors.array(),
+    });
+  }
   User.findOne({ email })
     .then((user) => {
       if (!user) {
-        req.flash("error", "Invalid email or password");
-        return res.redirect("/login");
+        return res.status(422).render("auth/login", {
+          pageTitle: "Login",
+          path: "/login",
+          errorMessage: "Invalid email or password",
+          oldInput: { email, password, confirmPassword },
+          validationErrors: [],
+        });
       }
       // validate password
       bcrypt
@@ -48,8 +63,13 @@ exports.postLogin = (req, res, next) => {
               res.redirect("/");
             });
           }
-          req.flash("error", "Invalid email or password");
-          return res.redirect("/login");
+          return res.status(422).render("auth/login", {
+            pageTitle: "Login",
+            path: "/login",
+            errorMessage: "Invalid email or password",
+            oldInput: { email, password, confirmPassword },
+            validationErrors: [],
+          });
         })
         .catch((err) => {
           console.log(err);
@@ -70,12 +90,14 @@ exports.getSignup = (req, res, next) => {
     pageTitle: "Signup",
     path: "/signup",
     errorMessage: message,
+    oldInput: { email: "", password: "", confirmPassword: "" },
+    validationErrors: [],
   });
 };
 
 exports.postSignup = (req, res, next) => {
   const { email, password, confirmPassword } = req.body;
-  // validate input
+
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     console.log(errors.array());
@@ -83,36 +105,30 @@ exports.postSignup = (req, res, next) => {
       pageTitle: "Signup",
       path: "/signup",
       errorMessage: errors.array()[0].msg,
+      oldInput: { email, password, confirmPassword },
+      validationErrors: errors.array(),
     });
   }
 
-  User.findOne({ email })
-    .then((userDoc) => {
-      // user exist
-      if (userDoc) {
-        req.flash("error", "Email exists already, please pick other one");
-        return res.redirect("/signup");
-      }
-      return bcrypt
-        .hash(password, 12)
-        .then((hashedPassword) => {
-          const user = new User({
-            email,
-            password: hashedPassword,
-            cart: { items: [] },
-          });
-          return user.save();
-        })
-        .then((result) => {
-          res.redirect("/login");
+  bcrypt
+    .hash(password, 12)
+    .then((hashedPassword) => {
+      const user = new User({
+        email,
+        password: hashedPassword,
+        cart: { items: [] },
+      });
+      return user.save();
+    })
+    .then((result) => {
+      res.redirect("/login");
 
-          return transport.sendMail({
-            to: email,
-            from: "test-study-nodejs@gmail.com",
-            subject: "Sign up successful",
-            html: "<h1>You have sign up demo app successful</h1>",
-          });
-        });
+      return transport.sendMail({
+        to: email,
+        from: "test-study-nodejs@gmail.com",
+        subject: "Sign up successful",
+        html: "<h1>You have sign up demo app successful</h1>",
+      });
     })
     .catch((err) => {
       console.log(err);
