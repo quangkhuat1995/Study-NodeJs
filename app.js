@@ -6,6 +6,7 @@ const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
 const app = express();
 const flash = require("connect-flash");
+const multer = require("multer");
 
 const dotenv = require("dotenv");
 dotenv.config();
@@ -18,6 +19,26 @@ const store = new MongoDBStore({
   collection: "sessions",
 });
 
+const fileStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "images");
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${new Date().toISOString()}-${file.originalname}`);
+  },
+});
+const fileFilter = (req, file, cb) => {
+  if (
+    file.minetype === "image/png" ||
+    file.minetype === "image/jpg" ||
+    file.minetype === "image/jpeg"
+  ) {
+    cb(null, true);
+  } else {
+    cb(null, false);
+  }
+};
+
 const csurfProtection = csurf();
 
 // remember template should have filename like [some-name].hbs
@@ -29,6 +50,7 @@ const shopRoutes = require("./routes/shop");
 const authRoutes = require("./routes/auth");
 const errorControllers = require("./controllers/error");
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(multer({ storage: fileStorage, fileFilter }).single("image"));
 app.use(express.static(path.join(__dirname, "public")));
 app.use(
   session({
