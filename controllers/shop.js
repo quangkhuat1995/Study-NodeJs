@@ -2,6 +2,7 @@ const Product = require("../models/product");
 const Order = require("../models/order");
 const fs = require("fs");
 const path = require("path");
+const PDFDocument = require("pdfkit");
 
 exports.getProducts = (req, res, next) => {
   Product.find()
@@ -170,6 +171,32 @@ exports.getInvoice = (req, res, next) => {
 
       const invoiceName = "invoice-" + orderId + ".pdf";
       const invoicePath = path.join("data", "invoices", invoiceName);
+
+      const pdfDoc = new PDFDocument();
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        "inline; filename=" + invoiceName + '"'
+      );
+
+      pdfDoc.pipe(fs.createWriteStream(invoicePath)); // save to server
+      pdfDoc.pipe(res); // send to client
+
+      pdfDoc.fontSize(26).text("Invoice", { underline: true });
+      pdfDoc.text("----------------");
+      let totalPrice = 0;
+      order.products.forEach((p) => {
+        totalPrice += p.quantity * p.productData.price;
+        pdfDoc
+          .fontSize(16)
+          .text(
+            `${p.productData.title}: ${p.quantity} x $${p.productData.price}`
+          );
+      });
+      pdfDoc.text("----------------");
+      pdfDoc.fontSize(20).text(`Total Price: $ ${totalPrice}`);
+
+      pdfDoc.end();
       /**
        * read file into memory then send the response, this is not good for large file
        */
@@ -188,13 +215,13 @@ exports.getInvoice = (req, res, next) => {
       /**
        * Send file as streaming data
        */
-      const file = fs.createReadStream(invoicePath);
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader(
-        "Content-Disposition",
-        "inline; filename=" + invoiceName + '"'
-      );
-      file.pipe(res);
+      // const file = fs.createReadStream(invoicePath);
+      // res.setHeader("Content-Type", "application/pdf");
+      // res.setHeader(
+      //   "Content-Disposition",
+      //   "inline; filename=" + invoiceName + '"'
+      // );
+      // file.pipe(res);
     })
     .catch((err) => {
       return next(err);
