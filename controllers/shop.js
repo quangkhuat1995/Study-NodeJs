@@ -3,6 +3,7 @@ const Order = require("../models/order");
 const fs = require("fs");
 const path = require("path");
 const PDFDocument = require("pdfkit");
+const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY);
 
 const ITEMS_PER_PAGE = 2;
 
@@ -168,6 +169,43 @@ exports.postOrder = (req, res, next) => {
     })
     .then((result) => {
       return res.redirect("/orders");
+    })
+    .catch((err) => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
+};
+
+exports.getCheckout = (req, res, next) => {
+  let products
+  let total = 0
+  req.user
+    .populate("cart.items.productId")
+    .execPopulate() // to create a promise
+    .then((user) => {
+      products = user.cart.items;
+      products.forEach((p) => {
+        total += p.quantity * p.productData.price;
+      });
+      return stripe.checkout.sessions.create({
+        payment_method_types:['card'],
+        line_item:products.map(p=>{
+          return {
+            name: p.productData.title,
+            // TODO: continue
+          }
+        })
+      })
+    })
+    .then((session)=>{
+      res.render("shop/checkout", {
+        pageTitle: "Checkout",
+        path: "/checkout",
+        products: products,
+        totalSum: total,
+        sessionId = session.id
+      });
     })
     .catch((err) => {
       const error = new Error(err);
