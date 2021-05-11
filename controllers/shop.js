@@ -122,17 +122,9 @@ exports.postCart = (req, res, next) => {
     });
 };
 
-exports.getCheckout = (req, res, next) => {
-  res.render("shop/checkout", {
-    pageTitle: "Checkout",
-    path: "/checkout",
-  });
-};
-
 exports.getOrders = (req, res, next) => {
   Order.find({ "user.userId": req.user._id })
     .then((orders) => {
-      console.log(orders);
       res.render("shop/orders", {
         pageTitle: "Your Orders",
         path: "/orders",
@@ -146,7 +138,7 @@ exports.getOrders = (req, res, next) => {
     });
 };
 
-exports.postOrder = (req, res, next) => {
+exports.getCheckoutSuccess = (req, res, next) => {
   req.user
     .populate("cart.items.productId")
     .execPopulate() // to create a promise
@@ -178,36 +170,43 @@ exports.postOrder = (req, res, next) => {
 };
 
 exports.getCheckout = (req, res, next) => {
-  let products
-  let total = 0
+  let products;
+  let total = 0;
   req.user
     .populate("cart.items.productId")
     .execPopulate() // to create a promise
     .then((user) => {
       products = user.cart.items;
       products.forEach((p) => {
-        total += p.quantity * p.productData.price;
+        total += p.quantity * p.productId.price;
       });
       return stripe.checkout.sessions.create({
-        payment_method_types:['card'],
-        line_item:products.map(p=>{
+        payment_method_types: ["card"],
+        line_items: products.map((p) => {
           return {
-            name: p.productData.title,
-            // TODO: continue
-          }
-        })
-      })
+            name: p.productId.title,
+            description: p.productId.description,
+            amount: p.productId.price * 100,
+            currency: "USD",
+            quantity: p.quantity,
+          };
+        }),
+        success_url: `${req.protocol}://${req.get("host")}/checkout/success`,
+        cancel_url: `${req.protocol}://${req.get("host")}/checkout/cancel`,
+      });
     })
-    .then((session)=>{
+    .then((session) => {
       res.render("shop/checkout", {
         pageTitle: "Checkout",
         path: "/checkout",
         products: products,
         totalSum: total,
-        sessionId = session.id
+        sessionId: session.id,
+        publicKey: process.env.STRIPE_PUBLIC_KEY,
       });
     })
     .catch((err) => {
+      console.log(err);
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
